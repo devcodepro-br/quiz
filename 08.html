@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simulador de Provas</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 800px;
+        width: 100%;
+        padding: 30px;
+      }
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 1.8rem;
+      }
+      .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 25px;
+        font-size: 0.95rem;
+      }
+      .score-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        text-align: center;
+      }
+      .score-value {
+        font-size: 3rem;
+        font-weight: bold;
+        margin: 10px 0;
+      }
+      .score-details {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 10px;
+        font-size: 0.9rem;
+      }
+      .question {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #667eea;
+      }
+      .question-header {
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+      }
+      .question-context {
+        color: #555;
+        margin-bottom: 12px;
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+      .question-text {
+        color: #333;
+        margin-bottom: 15px;
+        font-weight: 500;
+        line-height: 1.5;
+      }
+      .options {
+        list-style: none;
+      }
+      .option {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .option:hover {
+        border-color: #667eea;
+        background: #f0f4ff;
+      }
+      .option input[type="radio"] {
+        cursor: pointer;
+      }
+      .option.correct {
+        background: #d4edda;
+        border-color: #28a745;
+      }
+      .option.incorrect {
+        background: #f8d7da;
+        border-color: #dc3545;
+      }
+      .option.disabled {
+        cursor: default;
+      }
+      .option.disabled:hover {
+        background: white;
+        border-color: #e0e0e0;
+      }
+      .option.correct:hover,
+      .option.incorrect:hover {
+        background: #d4edda;
+        border-color: #28a745;
+      }
+      .option.incorrect:hover {
+        background: #f8d7da;
+        border-color: #dc3545;
+      }
+      .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+        width: 100%;
+        margin-top: 10px;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+      .hidden {
+        display: none;
+      }
+      .feedback {
+        text-align: center;
+        margin-top: 15px;
+        font-size: 0.95rem;
+        color: #666;
+      }
+      @media (max-width: 600px) {
+        .container {
+          padding: 20px;
+        }
+        h1 {
+          font-size: 1.5rem;
+        }
+        .score-value {
+          font-size: 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Simulador</h1>
+      <p class="subtitle">
+        Fisiologia Do Sistema Respiratório e Cardiovascular
+      </p>
+      <div class="score-box">
+        <div>Sua nota</div>
+        <div class="score-value" id="scoreValue">–</div>
+        <div class="score-details">
+          <span>✓ Acertos: <strong id="hits">0</strong></span>
+          <span>✗ Erros: <strong id="mistakes">0</strong></span>
+          <span>Total: <strong id="answered">0</strong>/20</span>
+        </div>
+        <div class="feedback" id="feedback">
+          Responda as questões e clique em "Corrigir Prova"
+        </div>
+      </div>
+      <div id="questionsContainer"></div>
+      <button class="btn" id="btnCorrect">Corrigir Prova</button>
+    </div>
+    <script>
+      const QUESTIONS = [
+        {
+          id: 1,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "Considere uma situação em que um indivíduo realiza uma expiração forçada máxima após uma inspiração igualmente forçada. O volume total de ar expirado é utilizado para avaliar a função pulmonar e é um parâmetro essencial em exames espirométricos.",
+          question:
+            "Esse volume expirado após esforço máximo corresponde a qual medida espirométrica?",
+          options: [
+            "Capacidade pulmonar total",
+            "Capacidade residual funcional",
+            "Capacidade vital forçada",
+            "Volume de reserva expiratório",
+            "Volume expiratório forçado no primeiro segundo",
+          ],
+          correct: 2,
+        },
+        {
+          id: 2,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "O fenômeno da respiração pode ser considerado como as trocas de gases que ocorrem entre as células e o meio ambiente. Para que o ar se mova para dentro e para fora dos pulmões, o diafragma precisa ser ativado. Em relação às etapas relacionadas à função respiratória:",
+          question:
+            "I - Com a contração do diafragma na inspiração, ele se torna esférico e acarreta o aumento do volume da caixa torácica.\nII - À medida que a pressão alveolar se torna menor que a pressão do ar ambiente, o ar é sugado para o interior dos pulmões.\nIII - No momento da expiração, o tórax se expande (aumenta), e a pressão interna se torna negativa comparada à pressão barométrica.\nIV - Durante o relaxamento do diafragma, o volume torácico aumenta e o ar é transportado para fora dos pulmões.\n\nAssinale as opções corretas:",
+          options: ["I e II", "II, III e IV", "I, II e III", "I, II e IV"],
+          correct: 0,
+        },
+        {
+          id: 3,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "O sistema respiratório humano é organizado em zonas com funções distintas, que garantem a condução e a troca de gases essenciais à homeostase corporal. A condução eficiente do ar, o condicionamento dos gases e a difusão pulmonar são processos fundamentais para o funcionamento respiratório adequado.",
+          question:
+            "Afirmativa I. A zona respiratória é formada pelos alvéolos, septos alveolares e uma extensa rede capilar, sendo responsável pelas trocas gasosas.\nAfirmativa II. A zona de condução é composta pelos bronquiolos respiratórios, onde se inicia o processo significativo de trocas gasosas.\nAfirmativa III. A zona de transição compreende áreas mistas em que se inicia a troca gasosa, embora de forma pouco significativa.\n\nMarque a alternativa que apresenta a(s) afirmativa(s) correta(s):",
+          options: ["I e II", "II e III", "I", "I e III", "I, II e III"],
+          correct: 2,
+        },
+        {
+          id: 4,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context: "A respeito da traqueia:",
+          question: "É correto afirmar que:",
+          options: [
+            "Une a parte inferior da faringe (nasofaringe) à traqueia",
+            "Apresenta cerca de 15-20 cm de comprimento nos adultos",
+            "Apresenta 9 cartilagens, sendo 5 impares e 2 pares",
+            "Possui diversos ligamentos, sendo alguns deles: tireoepiglótico, ligamento vocal, hioepiglótico e ligamento cricotireóideo",
+            "Apresenta uma estrutura chamada cone elástico, formada pela membrana cricovestibular",
+          ],
+          correct: 1,
+        },
+        {
+          id: 5,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "O teste de função pulmonar tem como função medir a capacidade do pulmão de reter o ar e movimentá-lo para dentro e para fora, absorvendo o oxigênio. Para determinar essa capacidade é feita uma conta com os valores dos volumes primários que são fornecidos pelo aparelho utilizado no teste.",
+          question:
+            "O volume que pede o máximo de quantidade de ar mobilizada para interior do sistema durante a fase respiratória, no final de uma inspiração, é denominado como:",
+          options: [
+            "VC- Volume corrente",
+            "VRR - Volume de reserva respiratória",
+            "VR - Volume residual",
+            "VRE - Volume de reserva expiratório",
+            "VRI - Volume de reserva Inspiratório",
+          ],
+          correct: 4,
+        },
+        {
+          id: 6,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "Para analisarmos a capacidade respiratória de um indivíduo é necessário que ele se submeta há um teste de função pulmonar. O resultado é avaliado com a somatória de dois volumes pulmonares dando a capacidade específica.",
+          question:
+            "A capacidade pulmonar realizada com a some dos volumes Inspiratório e expiratório, durante a realização de incursões máxima é:",
+          options: [
+            "Capacidade vital",
+            "Capacidade residual funcional",
+            "Capacidade inspiratória",
+            "Capacidade pulmonar total",
+            "Capacidade expiratória",
+          ],
+          correct: 0,
+        },
+        {
+          id: 7,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "O sistema respiratório não difere entre as espécies animais. (Afirmativa 2) Isto porque a respiração branquial e a pulmonar possuem as mesmas características.",
+          question: "Analise as afirmativas:",
+          options: [
+            "A primeira afirmativa está correta e a segunda está errada",
+            "Ambas as afirmativas estão corretas",
+            "A primeira afirmativa está errada e a segunda está correta",
+            "Ambas as afirmativas estão erradas",
+            "A primeira afirmativa está correta, porém a segunda não é uma justificativa da primeira",
+          ],
+          correct: 3,
+        },
+        {
+          id: 8,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "Durante o processo de respiração é necessário a ajuda de um conjunto de movimentos das costelas, músculos intercostais e diafragma, que determinam os movimentos de inspiração e expiração.",
+          question:
+            "A respeito desses dois processos, marque a alternativa correta.",
+          options: [
+            "A expiração é o movimento responsável pela entrada de ar pelas vias respiratórias",
+            "Na inspiração ocorre o relaxamento do diafragma e dos músculos intercostais, fazendo com que o tórax aumente de tamanho",
+            "No processo de expiração ocorre a saída de ar dos pulmões em razão de uma diminuição no volume da caixa torácica e um aumento da pressão interna",
+            "No processo de inspiração ocorre a contração dos músculos intercostais e do diafragma, ocasionando uma pressão interna maior que a externa",
+            "Na expiração as margens das costelas são levantadas, para aumentar o volume torácico",
+          ],
+          correct: 2,
+        },
+        {
+          id: 9,
+          desafio: "Fisiologia Do Sistema Digestório",
+          context:
+            "No processo de deglutição, o bolo alimentar é empurrado pela língua para a faringe e então segue para o esôfago. Às vezes, o alimento entra na laringe, obstruindo assim a passagem de ar. Quando isso ocorre, a pessoa se engasga, e em casos mais graves, a falta de ar pode levar à morte.",
+          question:
+            "Qual o nome da estrutura responsável por impedir que o alimento entre na laringe?",
+          options: ["Cárdia", "Epiglote", "Jejuno", "Piloro", "Quimo"],
+          correct: 1,
+        },
+        {
+          id: 10,
+          desafio: "Fisiologia Do Sistema Cardiovascular",
+          context:
+            "A água, por ter um alto calor específico, é um elemento importante para a regulação da temperatura corporal em todos os chamados animais de sangue quente. A quantidade de água necessária para a manutenção da estabilidade da temperatura corporal varia, basicamente, em função de dois processos: a sudorese e a produção de urina.",
+          question:
+            "Assinale a opção que aponta corretamente como funciona esse controle.",
+          options: [
+            "Quando há aumento da temperatura ambiente o indivíduo produz menor quantidade de suor e menor quantidade de urina",
+            "Quando há aumento da temperatura ambiente, o indivíduo produz maior quantidade de suor e maior quantidade de urina",
+            "Quando há diminuição da temperatura ambiente, o indivíduo produz menor quantidade de suor e maior quantidade de urina",
+            "Quando há diminuição da temperatura ambiente, o indivíduo produz maior quantidade de suor e menor quantidade de urina",
+            "Quando há diminuição da temperatura ambiente, o indivíduo produz maior quantidade de suor e maior quantidade de urina",
+          ],
+          correct: 2,
+        },
+        {
+          id: 11,
+          desafio: "Fisiologia Do Sistema Cardiovascular",
+          context:
+            "Marque verdadeiro (V) ou falso (F) nas afirmativas abaixo e depois assinale a opção correta:",
+          question:
+            "( ) Quando a pressão arterial está aumentada, o número de impulsos pelos barorreceptores (aórticos e carotídeos) diminui, fazendo com que os corpos celulares do sistema simpático (BVLC) desempenhem uma resposta efetora ao coração para diminuir a pressão arterial.\n( ) Quando o núcleo do trato solitário (NTS) aumenta a taxa de impulsos para os núcleos do sistema parassimpático (NA/DMV), a resposta efetora ao coração é para diminuir a frequência cardíaca, volume de eleção, retorno venoso, contratilidade e aumentar a capacitância venosa para diminuir a pressão arterial.\n( ) A atividade simpática aumenta a secreção de renina nos rins e, como consequência final, ocorre aumento da retenção de sódio e água; tal mecanismo aumenta a pressão arterial em longo prazo.\n( ) Quando aumenta a volemia e a osmolaridade plasmática, o hormônio antidiurético é inibido. Deste modo, ocorrerá diminuição da reabsorção de sódio e água e aumento da natriurese e diurese (excreção de sódio e água) para diminuir a pressão arterial.\n( ) Durante uma hemorragia, o principal mecanismo de regulação da pressão arterial é pela ativação dos barorreceptores, que promoverá um aumento da resistência vascular periférica e, por fim, manterá a pressão arterial.",
+          options: ["F-F-V-V-F", "V-V-F-F-V", "F-V-V-F-F"],
+          correct: 0,
+        },
+        {
+          id: 12,
+          desafio: "Fisiologia Do Sistema Cardiovascular",
+          context:
+            "O sistema renina angiotensina aldosterona é um dos principais alvos de terapia contra a hipertensão arterial sistêmica (Afirmativa 1), pois o uso de bloqueadores deste sistema impede que ocorra aumento da pressão arterial (Afirmativa 2).",
+          question: "Sobre as afirmativas é correto dizer que:",
+          options: [
+            "A primeira afirmativa está correta e a segunda está errada",
+            "Ambas as afirmativas estão corretas",
+            "A primeira afirmativa está errada e a segunda está correta",
+            "Ambas as afirmativas estão erradas",
+            "A primeira afirmativa está correta, porém a segunda não é uma justificativa da primeira",
+          ],
+          correct: 1,
+        },
+        {
+          id: 13,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "Quando respiramos o ar entra pelo trato respiratório e passa por processo de condicionamento de gases que é dividido por diferentes fases.",
+          question:
+            "A fase que consiste ser uma separação, onde parte das partículas são aprisionadas nos pelos presentes na narina, é conhecida como:",
+          options: [
+            "Umidificação dos gases",
+            "Aquecimento dos gases",
+            "Divisão dos gases",
+            "Evaporação dos gases",
+            "Filtração dos gases",
+          ],
+          correct: 4,
+        },
+        {
+          id: 14,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "Sabemos que o ar inspirado passa inicialmente pelas narinas e cavidades nasais. Nesse local encontramos pêlos e muco que são responsáveis por uma parte do processo de condicionamento do ar.",
+          question: "Esse processo se caracteriza por:",
+          options: [
+            "Eliminação de impurezas do ar, como poeira e agentes patogênicos",
+            "Resfriamento e umedecimento o ar",
+            "Auxiliar no processo de hematose",
+            "Resfriamento do ar e proteção contra entrada de micro-organismos",
+            "Depender da ação de enzimas específicas",
+          ],
+          correct: 0,
+        },
+        {
+          id: 15,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "Durante a respiração sistêmica do ser humano, ocorre a inspiração e expiração para realização das trocas de gasosas no nosso organismo.",
+          question:
+            "De acordo com esse processo qual gás eliminamos e qual é absorvido nos tecidos:",
+          options: [
+            "eliminação de O2 e eliminação de CO2 nos tecidos",
+            "absorção de CO2 e O2 nos tecidos",
+            "eliminação de CO2 e absorção de O2 nos tecidos",
+            "eliminação de CO2 e O2 nos tecidos",
+            "eliminação de O2 e absorção de CO2 nos pulmões",
+          ],
+          correct: 2,
+        },
+        {
+          id: 16,
+          desafio: "Fisiologia Do Sistema Cardiovascular",
+          context:
+            "O ciclo cardíaco pode ser dividido em sete fases (Afirmativa 1). Uma delas é a contração atrial, responsável por 75% de todo enchimento ventricular na fase de enchimento rápido (Afirmativa 2).",
+          question: "Análise as afirmativas e responda:",
+          options: [
+            "A primeira afirmativa está correta e a segunda está errada",
+            "Ambas as afirmativas estão corretas",
+            "A primeira afirmativa está errada e a segunda está correta",
+            "Ambas as afirmativas estão erradas",
+            "A primeira afirmativa está correta, porém a segunda não é uma justificativa da primeira",
+          ],
+          correct: 3,
+        },
+        {
+          id: 17,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "Uma pessoa acometida pela gripe suína teve o quadro clínico agravado por uma pneumonia viral, que levou à inflamação pulmonar com acúmulo de líquido e decorrente obstrução nas unidades funcionais dos pulmões.",
+          question:
+            "Nessas circunstâncias, é correto afirmar que ficou prejudicado o acesso do oxigênio à (aos):",
+          options: [
+            "laringe e à faringe",
+            "traqueia e aos alvéolos",
+            "faringe e aos bronquiolos",
+            "bronquiolos e aos alvéolos",
+            "brônquios e à traqueia",
+          ],
+          correct: 3,
+        },
+        {
+          id: 18,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "Durante a análise dos traçados espirométricos, um paciente apresentou valores absolutos reduzidos tanto para o volume expiratório forçado no primeiro segundo (VEF 1,0) quanto para a capacidade vital forçada (CVF), embora a relação percentual entre eles tenha se mantido superior a 80%.",
+          question: "Esse padrão é compatível com qual condição respiratória?",
+          options: [
+            "Doença pulmonar obstrutiva crônica (DPOC)",
+            "Hiperventilação",
+            "Padrão normal",
+            "Padrão restritivo",
+            "Bronquite crônica",
+          ],
+          correct: 3,
+        },
+        {
+          id: 19,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "O padrão respiratório é a forma como os compartimentos torácico e abdominal se movimento durante a respiração. Alguns fatores podem alterar esse padrão respiratório sendo denominado de acordo com as características.",
+          question:
+            "Quando aumentamos a nossa frequência cardíaca, com isso aumento da respiração, chamamos esse padrão respiratório de:",
+          options: [
+            "Braújoneia",
+            "Hiperpneia",
+            "Taquipneia",
+            "Eupneia",
+            "Hipopneia",
+          ],
+          correct: 2,
+        },
+        {
+          id: 20,
+          desafio: "Fisiologia Do Sistema Respiratório",
+          context:
+            "Todo ar inspirado passa inicialmente pelas narinas e cavidades nasais, percorrendo todo sistema respiratório e realizando as trocas gasosas com auxílio do coração e pulmão.",
+          question: "Nas narinas encontramos pelos e muco que:",
+          options: [
+            "atuam retirando impurezas do ar, como poeira e agentes patogênicos",
+            "atuam resfriando e umedecendo o ar",
+            "atuam auxiliando no processo de hematose",
+            "atuam resfriando o ar e fornecendo proteção contra entrada de micro-organismos",
+            "atuam como esquentando o ar",
+          ],
+          correct: 0,
+        },
+      ];
+
+      let userAnswers = {};
+      let corrected = false;
+
+      const elements = {
+        container: document.getElementById("questionsContainer"),
+        btnCorrect: document.getElementById("btnCorrect"),
+        scoreValue: document.getElementById("scoreValue"),
+        hits: document.getElementById("hits"),
+        mistakes: document.getElementById("mistakes"),
+        answered: document.getElementById("answered"),
+        feedback: document.getElementById("feedback"),
+      };
+
+      function renderQuestions() {
+        elements.container.innerHTML = "";
+        QUESTIONS.forEach((q, index) => {
+          const article = document.createElement("article");
+          article.className = "question";
+
+          const header = document.createElement("div");
+          header.className = "question-header";
+          header.textContent = `Questão ${index + 1} • ${q.desafio}`;
+          article.appendChild(header);
+
+          if (q.context) {
+            const context = document.createElement("p");
+            context.className = "question-context";
+            context.textContent = q.context;
+            article.appendChild(context);
+          }
+
+          const questionText = document.createElement("p");
+          questionText.className = "question-text";
+          questionText.textContent = q.question;
+          article.appendChild(questionText);
+
+          const ul = document.createElement("ul");
+          ul.className = "options";
+
+          q.options.forEach((opt, optIndex) => {
+            const li = document.createElement("li");
+            li.className = "option";
+
+            if (corrected) {
+              li.classList.add("disabled");
+              if (optIndex === q.correct) {
+                li.classList.add("correct");
+              }
+              if (userAnswers[q.id] === optIndex && optIndex !== q.correct) {
+                li.classList.add("incorrect");
+              }
+            }
+
+            const input = document.createElement("input");
+            input.type = "radio";
+            input.name = `q${q.id}`;
+            input.value = optIndex;
+            input.checked = userAnswers[q.id] === optIndex;
+            input.disabled = corrected;
+
+            const label = document.createElement("label");
+            label.textContent = `${String.fromCharCode(65 + optIndex)}) ${opt}`;
+            label.style.cursor = corrected ? "default" : "pointer";
+
+            li.appendChild(input);
+            li.appendChild(label);
+
+            if (!corrected) {
+              li.addEventListener("click", () => {
+                input.checked = true;
+                userAnswers[q.id] = optIndex;
+                updateAnsweredCount();
+              });
+              input.addEventListener("change", () => {
+                userAnswers[q.id] = optIndex;
+                updateAnsweredCount();
+              });
+            }
+
+            ul.appendChild(li);
+          });
+
+          article.appendChild(ul);
+          elements.container.appendChild(article);
+        });
+      }
+
+      function updateAnsweredCount() {
+        elements.answered.textContent = Object.keys(userAnswers).length;
+      }
+
+      function correctExam() {
+        if (corrected) return;
+
+        let hits = 0;
+        let mistakes = 0;
+
+        QUESTIONS.forEach((q) => {
+          const userAnswer = userAnswers[q.id];
+          if (userAnswer !== undefined) {
+            if (userAnswer === q.correct) {
+              hits++;
+            } else {
+              mistakes++;
+            }
+          }
+        });
+
+        const score = (hits / QUESTIONS.length) * 10;
+        const scoreRounded = Math.round(score * 10) / 10;
+
+        elements.scoreValue.textContent = scoreRounded
+          .toFixed(1)
+          .replace(".", ",");
+        elements.hits.textContent = hits;
+        elements.mistakes.textContent = mistakes;
+
+        let feedback = "";
+        if (score >= 9) {
+          feedback = "🎉 Excelente! Você domina o conteúdo!";
+        } else if (score >= 7) {
+          feedback = "👏 Bom trabalho! Continue estudando!";
+        } else if (score >= 5) {
+          feedback = "📚 Razoável. Revise os tópicos com mais atenção.";
+        } else {
+          feedback = "📖 Precisa revisar. Estude mais e tente novamente!";
+        }
+
+        elements.feedback.textContent = feedback;
+        corrected = true;
+        renderQuestions();
+      }
+
+      elements.btnCorrect.addEventListener("click", correctExam);
+      renderQuestions();
+    </script>
+  </body>
+</html>

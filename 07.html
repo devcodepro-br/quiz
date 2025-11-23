@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simulador de Provas</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 800px;
+        width: 100%;
+        padding: 30px;
+      }
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 1.8rem;
+      }
+      .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 25px;
+        font-size: 0.95rem;
+      }
+      .score-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        text-align: center;
+      }
+      .score-value {
+        font-size: 3rem;
+        font-weight: bold;
+        margin: 10px 0;
+      }
+      .score-details {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 10px;
+        font-size: 0.9rem;
+      }
+      .question {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #667eea;
+      }
+      .question-header {
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+      }
+      .question-context {
+        color: #555;
+        margin-bottom: 12px;
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+      .question-text {
+        color: #333;
+        margin-bottom: 15px;
+        font-weight: 500;
+        line-height: 1.5;
+      }
+      .options {
+        list-style: none;
+      }
+      .option {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .option:hover {
+        border-color: #667eea;
+        background: #f0f4ff;
+      }
+      .option input[type="radio"] {
+        cursor: pointer;
+      }
+      .option.correct {
+        background: #d4edda;
+        border-color: #28a745;
+      }
+      .option.incorrect {
+        background: #f8d7da;
+        border-color: #dc3545;
+      }
+      .option.disabled {
+        cursor: default;
+      }
+      .option.disabled:hover {
+        background: white;
+        border-color: #e0e0e0;
+      }
+      .option.correct:hover,
+      .option.incorrect:hover {
+        background: #d4edda;
+        border-color: #28a745;
+      }
+      .option.incorrect:hover {
+        background: #f8d7da;
+        border-color: #dc3545;
+      }
+      .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+        width: 100%;
+        margin-top: 10px;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+      .hidden {
+        display: none;
+      }
+      .feedback {
+        text-align: center;
+        margin-top: 15px;
+        font-size: 0.95rem;
+        color: #666;
+      }
+      @media (max-width: 600px) {
+        .container {
+          padding: 20px;
+        }
+        h1 {
+          font-size: 1.5rem;
+        }
+        .score-value {
+          font-size: 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Simulador</h1>
+      <p class="subtitle">Praticando Fisiologia e Neurociência</p>
+      <div class="score-box">
+        <div>Sua nota</div>
+        <div class="score-value" id="scoreValue">–</div>
+        <div class="score-details">
+          <span>✓ Acertos: <strong id="hits">0</strong></span>
+          <span>✗ Erros: <strong id="mistakes">0</strong></span>
+          <span>Total: <strong id="answered">0</strong>/20</span>
+        </div>
+        <div class="feedback" id="feedback">
+          Responda as questões e clique em "Corrigir Prova"
+        </div>
+      </div>
+      <div id="questionsContainer"></div>
+      <button class="btn" id="btnCorrect">Corrigir Prova</button>
+    </div>
+    <script>
+      const QUESTIONS = [
+        {
+          id: 1,
+          desafio: "Fisiologia Do Sistema Cardiovascular",
+          context:
+            "O ciclo cardíaco é um conjunto de processo que une as atividades que fazem parte do funcionamento padrão do miocárdio. A cada estímulo do coração se inicia um novo ciclo, onde os períodos são divididos em sístole a contração e diástole o relaxamento. Esses períodos podem ser divididos em mais fases, a parte responsável pela excitação atrial e o aumento da pressão atrial durante a contração é:",
+          question:
+            "A parte responsável pela excitação atrial e o aumento da pressão atrial durante a contração é:",
+          options: [
+            "CONTRAÇÃO VENTRICULAR ISOVOLUMÉTRICA",
+            "CONTRAÇÃO ATRIAL",
+            "RELAXAMENTO VENTRICULAR ISOVOLUMÉTRICO",
+            "ENCHIMENTO VENTRICULAR (RÁPIDO E LENTO)",
+            "EJEÇÃO VENTRICULAR (RÁPIDA E LENTA)",
+          ],
+          correct: 1,
+        },
+        {
+          id: 2,
+          desafio: "Fisiologia Do Sistema Cardiovascular",
+          context:
+            "O sistema nervoso autossômico é divido em dois componentes: simpático e parassimpático. Eles funcionam em equilíbrio de acordo com determinadas situações. De acordo com o contexto analise as assertivas abaixo:",
+          question:
+            "Quando levamos um susto e ficamos com sentimento de medo e insegurança a pressão arterial aumenta assim como outros fatores relacionados. PORQUE Nosso sistema nervoso parassimpático é acionado e influência nos fatores deixando em alerta um sistema de fuga e perigo.",
+          options: [
+            "A primeira assertiva está correta, mas a segunda está errada.",
+            "A primeira assertiva está errada, mas a segunda está correta.",
+            "Nenhuma das assertivas estão corretas.",
+            "As duas assertivas estão corretas, mas a segunda não é uma justificativa correta da primeira.",
+            "As duas assertivas estão corretas, e a segunda é uma justificativa correta da primeira.",
+          ],
+          correct: 0,
+        },
+        {
+          id: 3,
+          desafio:
+            "Fisiologia Do Sistema Nervoso Somático e Sistema Nervoso Visceral",
+          context:
+            "O sistema nervoso visceral entérico controla quais funções no nosso organismo?",
+          question:
+            "Assinale a alternativa correta com relação à atividade simpática:",
+          options: [
+            "Controla as funções do trato gastrointestinal, pâncreas e vesícula biliar.",
+            "Controla as funções do trato gastrointestinal, pâncreas e coração.",
+            "Controla as funções do trato gastrointestinal, pulmões e coração.",
+            "Controla as funções do coração, pulmões e vesícula biliar.",
+            "Controla as funções do coração, pâncreas e vesícula biliar.",
+          ],
+          correct: 0,
+        },
+        {
+          id: 4,
+          desafio: "Fisiologia Do Sistema Cardiovascular",
+          context:
+            "Retenção de sódio e água, da mecanismo aumenta a pressão arterial em longo prazo.",
+          question:
+            "Analise as assertivas: ( ) Quando aumenta a volemia e a osmolaridade plasmática, o hormônio antidiurético é inibido. Deste modo, ocorrerá diminuição da reabsorção de sódio e água e aumento da natriurese e diurese (excreção de sódio e água) para diminuir a pressão arterial. ( ) Durante uma hemorragia, o principal mecanismo de regulação da pressão arterial é pela ativação dos barorreceptores, que promoverá um aumento da resistência vascular periférica e, por fim, manterá a pressão arterial.",
+          options: [
+            "F-F-V-V-F",
+            "V-V-F-F-V",
+            "F-V-V-F-F",
+            "V-F-V-F-V",
+            "F-V-F-V-F",
+          ],
+          correct: 2,
+        },
+        {
+          id: 5,
+          desafio: "Fisiologia Do Sistema Cardiovascular",
+          context:
+            "O coração possui células autoexcitáveis responsáveis pelo controle intrínseco da ritmicidade cardíaca, além disso, pode ser considerado um sincício funcional devido a características específicas.",
+          question:
+            "Entre as opções abaixo, marque a que justifique o fato pelo qual o coração é considerado um sincício funcional:",
+          options: [
+            "Em função do marcapasso do coração ser representado pelo nó sinoatrial.",
+            "Devido à liberação de cálcio (Ca²⁺) do retículo sarcoplasmático durante a fase sistólica.",
+            "Uma vez que o nó sinoatrial é responsável pelo marcapasso, o nó atrioventricular assume essa função.",
+            "Em função dos miócitos cardíacos possuírem as junções comunicantes (gap junctions), uma vez que essas estruturas são responsáveis pela transmissão do impulso nervoso de célula para célula.",
+            "Pela sua capacidade intrínseca e extrínseca de controle do ritmo cardíaco.",
+          ],
+          correct: 3,
+        },
+        {
+          id: 6,
+          desafio: "Fisiologia Do Sistema Cardiovascular",
+          context:
+            "O potencial de ação cardíaco rápido é o nome dado ao processo de potencial de ação encontrado nos miócitos contráteis e fibras de Purkinje. O potencial pode ser dividido em diferentes fases, sendo uma delas responsável pelo aumento rápido da voltagem, durante o processo de despolarização.",
+          question:
+            "Essa fase responsável pelo aumento rápido da voltagem durante a despolarização é:",
+          options: ["Fase 0", "Fase 1", "Fase 2", "Fase 3", "Fase 4"],
+          correct: 0,
+        },
+        {
+          id: 7,
+          desafio:
+            "Comunicação Neural, Sentidos Somatossensoriais e Sentidos Especiais",
+          context:
+            "Os nervos sensitivos, que sempre são minimizados, em algumas regiões corpóreas como palmas, plantas, lábios e genitais, formam órgãos terminais específicos.",
+          question:
+            "Assinale a alternativa correta a respeito dos corpusculos de Meissner.",
+          options: [
+            "Localizam-se, especialmente, nas regiões palmo-plantares e são específicos para a sensibilidade à pressão.",
+            "São formados por fibra nervosa que se ramifica, permeando o colágeno, e relacionam-se à sensibilidade térmica.",
+            "Encontram-se na glande, no prepúcio, no clitóris, nos lábios vulvares e, em menor quantidade, no lábio, na língua, nas pálpebras e na pele perianal.",
+            "Localiza-se nos lábios e nas pontas dos dedos das mãos e dos pés, especialmente nas polpas dos dedos, ao nível da derme papilar. São específicos para a sensibilidade tátil.",
+            "São plexos terminais de nervos de posição subepidérmica, localizados especialmente nas polpas dos dedos.",
+          ],
+          correct: 3,
+        },
+        {
+          id: 8,
+          desafio:
+            "Fisiologia Do Sistema Nervoso Somático e Sistema Nervoso Visceral",
+          context:
+            "Quais as estruturas responsáveis por detectar alterações no comprimento muscular?",
+          question: "Assinale a alternativa correta:",
+          options: [
+            "O órgão tendinoso de Golgi e axônio Ia.",
+            "O fuso muscular e o axônio Ia.",
+            "O axônio Ia e axônio Ib.",
+            "O axônio Ib e o órgão tendinoso de Golgi.",
+            "O órgão tendinoso de Golgi e fibras musculares.",
+          ],
+          correct: 1,
+        },
+        {
+          id: 9,
+          desafio:
+            "Fisiologia Do Sistema Nervoso Somático e Sistema Nervoso Visceral",
+          context:
+            "Marque a opção que apresenta os órgãos receptores sensoriais implicados na propriocepção muscular:",
+          question:
+            "Quais são os órgãos receptores sensoriais implicados na propriocepção muscular?",
+          options: [
+            "Órgão Tendinoso de Golgi e Fuso Neuromuscular",
+            "Órgão Tendinoso de Golgi e Corpúsculo de Rufini",
+            "Órgão Tendinoso de Golgi e Corpúsculo de Paccini",
+            "Fuso Neuromuscular e Corpúsculo de Rufini",
+            "Fuso Neuromuscular e Corpúsculo de Paccini",
+          ],
+          correct: 0,
+        },
+        {
+          id: 10,
+          desafio:
+            "Fisiologia Do Sistema Nervoso Somático e Sistema Nervoso Visceral",
+          context:
+            "Com relação aos componentes sensoriais do sistema nervoso visceral, quais estruturas transmitem informações de receptores sensoriais viscerais?",
+          question:
+            "Quais estruturas transmitem informações de receptores sensoriais viscerais?",
+          options: [
+            "Os nervos vago, esplâncnicos e aferentes lombopélvicos.",
+            "Os nervos vago e aferentes lombopélvicos.",
+            "Os nervos vago e esplâncnicos.",
+            "Os nervos esplâncnicos e aferentes lombopélvicos.",
+            "Os nervos vago, esplâncnicos, aferentes lombopélvicos e femoral.",
+          ],
+          correct: 0,
+        },
+        {
+          id: 11,
+          desafio:
+            "Fisiologia Do Sistema Nervoso Somático e Sistema Nervoso Visceral",
+          context:
+            "O músculo liso é um tipo de tecido muscular que se encontra em vários órgãos do corpo humano, como o estômago, os intestinos, os vasos sanguíneos e os órgãos reprodutivos.",
+          question: "Como o músculo liso recebe informações?",
+          options: [
+            "Pelas fibras nervosas do sistema nervoso somático",
+            "Pelas fibras nervosas do sistema nervoso autônomo",
+            "Pelas fibras nervosas do sistema nervoso central",
+            "Pelas fibras nervosas do sistema nervoso periférico",
+            "Pelas fibras nervosas do sistema nervoso simpático",
+          ],
+          correct: 1,
+        },
+        {
+          id: 12,
+          desafio:
+            "Fisiologia Do Sistema Nervoso Somático e Sistema Nervoso Visceral",
+          context:
+            "As fibras musculares vermelhas e brancas apresentam diferenças significativas em sua estrutura e função. Essas diferenças são importantes para entender a fisiologia muscular e como diferentes atividades físicas podem afetar o desempenho muscular.",
+          question:
+            "Quais são as principais diferenças entre as fibras musculares vermelhas e brancas?",
+          options: [
+            "As fibras vermelhas são mais rápidas e fortes do que as brancas",
+            "As fibras brancas têm mais mitocôndrias e enzimas especializadas para o metabolismo oxidativo do que as vermelhas",
+            "As fibras vermelhas utilizam principalmente o metabolismo anaeróbio, enquanto as brancas utilizam principalmente o metabolismo oxidativo",
+            "As fibras vermelhas encolhem relativamente devagar, mas podem continuar encolhendo por muito tempo sem fadiga, enquanto as fibras brancas se cansam rapidamente",
+            "As fibras brancas são encontradas apenas em músculos associados a reflexos de escape.",
+          ],
+          correct: 3,
+        },
+        {
+          id: 13,
+          desafio:
+            "Fisiologia Do Sistema Nervoso Somático e Sistema Nervoso Visceral",
+          context:
+            "O aumento da frequência cardíaca é uma alteração fisiológica estimulada pelo:",
+          question: "Qual sistema estimula o aumento da frequência cardíaca?",
+          options: [
+            "Sistema Neuro-hipófise.",
+            "Sistema Nervoso Parassimpático.",
+            "Sistema Límbico.",
+            "Sistema Nervoso Simpático.",
+            "Reflexos Medulares.",
+          ],
+          correct: 3,
+        },
+        {
+          id: 14,
+          desafio:
+            "Fisiologia Do Sistema Nervoso Somático e Sistema Nervoso Visceral",
+          context:
+            "O sistema nervoso visceral é subdividido em simpático e parassimpático, os quais têm atividades, em geral, antagônicas, onde o coração tem uma inervação recíproca.",
+          question:
+            "Nesse sentido, quais as funções do simpático e do parassimpático respectivamente sobre o comportamento cardíaco?",
+          options: [
+            "A diminuição e o aumento da função hepática.",
+            "O aumento e diminuição da função renal.",
+            "A diminuição e o aumento da atividade mental.",
+            "O aumento e a diminuição da frequência cardíaca.",
+            "A diminuição e o aumento do peristaltismo.",
+          ],
+          correct: 3,
+        },
+        {
+          id: 15,
+          desafio:
+            "Fisiologia Do Sistema Nervoso Somático e Sistema Nervoso Visceral",
+          context:
+            "O Lócus de controle central se refere ao local no sistema nervoso central onde ocorre o processamento e controle de uma determinada função ou comportamento.",
+          question: "Qual o lócus de controle central na região visceral?",
+          options: [
+            "Córtices motores primário e secundário",
+            "Núcleos subcorticais relacionados",
+            "Medula espinal",
+            "Tronco cerebral",
+            "Hipotálamo",
+          ],
+          correct: 4,
+        },
+        {
+          id: 16,
+          desafio:
+            "Fisiologia Do Sistema Nervoso Somático e Sistema Nervoso Visceral",
+          context:
+            "Com relação ao reflexo patelar, que é uma resposta involuntária a um estímulo sensorial, analise as afirmativas abaixo.",
+          question:
+            "I. No reflexo patelar, apenas dois tipos de neurônios estão envolvidos: o sensorial, transmissor do impulso para a medula espinal; e o motor, que traz o impulso medular até o músculo da coxa, provocando a contração. II. Na avaliação do reflexo patelar, ao bater-se com um martelo no joelho, os axônios dos neurônios sensoriais são excitados e, portanto, os dendritos conduzem o impulso até à medula espinal. III. Se a raiz ventral do nervo espinal for seccionada, a pessoa sente a batida no joelho, mas não move a perna. Assinale a alternativa que apresenta somente afirmativas corretas.",
+          options: [
+            "II e III",
+            "I e II",
+            "I e III",
+            "I, II e III",
+            "Nenhuma das opções são corretas.",
+          ],
+          correct: 2,
+        },
+        {
+          id: 17,
+          desafio:
+            "Fisiologia Do Sistema Nervoso Somático e Sistema Nervoso Visceral",
+          context:
+            "Os gânglios simpáticos são estruturas do sistema nervoso autônomo que contêm os corpos celulares dos neurônios pós-ganglionares do sistema nervoso simpático.",
+          question: "Onde podemos localizar os gânglios simpáticos?",
+          options: [
+            "Ao longo dos corpos da coluna vertebral da parte superior cervical até o cóccix",
+            "No abdômen adjacente ao cóccix",
+            "No abdômen adjacente à aorta abdominal",
+            "No abdômen adjacente ao fígado",
+            "Na cabeça",
+          ],
+          correct: 0,
+        },
+        {
+          id: 18,
+          desafio: "Fisiologia Do Sistema Cardiovascular",
+          context:
+            "O coração é o musculo mais importante do nosso corpo. Através do seu funcionamento ele fornece sangue e oxigênio para as células. Possui uma estrutura formada por cavidades denominadas de átrios e ventrículos. Cada átrio comunica-se com o ventrículo por meio de um orifício que contém uma valva que impede o retorno de sangue de uma cavidade para outra.",
+          question: "O nome dessa valva é:",
+          options: [
+            "semilunar.",
+            "atrioventricular.",
+            "pulmonar.",
+            "ventricular.",
+            "cárdia.",
+          ],
+          correct: 1,
+        },
+        {
+          id: 19,
+          desafio: "Fisiologia Do Sistema Cardiovascular",
+          context:
+            "Sabemos que a circulação sistêmica ou grande circulação garante que o sangue seja levado para diferentes partes do corpo e depois retorne para o coração.",
+          question: "O sangue inicia a circulação pulmonar a partir do:",
+          options: [
+            "vela cava superior.",
+            "ventrículo esquerdo.",
+            "ventrículo direito.",
+            "artéria aorta.",
+            "artéria femural.",
+          ],
+          correct: 2,
+        },
+        {
+          id: 20,
+          desafio: "Fisiologia Do Sistema Cardiovascular",
+          context:
+            "Na circulação dos mamíferos, o coração contrai e relaxa ritmicamente, funcionando como uma bomba. O sangue que é bombeado percorre todo o corpo em uma sequência constante.",
+          question: "Entre as afirmativas abaixo, é correto afirmar:",
+          options: [
+            "O sangue arterial volta ao coração pela artéria aorta.",
+            "A artéria pulmonar leva sangue do pulmão para o coração.",
+            "As veias cavas entram no lado direito do coração.",
+            "O sangue vai do coração ao pulmão e volta para o coração, na grande circulação.",
+            "As veias cavas entram pelo lado esquerdo.",
+          ],
+          correct: 2,
+        },
+      ];
+
+      let userAnswers = {};
+      let corrected = false;
+
+      const elements = {
+        container: document.getElementById("questionsContainer"),
+        btnCorrect: document.getElementById("btnCorrect"),
+        scoreValue: document.getElementById("scoreValue"),
+        hits: document.getElementById("hits"),
+        mistakes: document.getElementById("mistakes"),
+        answered: document.getElementById("answered"),
+        feedback: document.getElementById("feedback"),
+      };
+
+      function renderQuestions() {
+        elements.container.innerHTML = "";
+        QUESTIONS.forEach((q, index) => {
+          const article = document.createElement("article");
+          article.className = "question";
+
+          const header = document.createElement("div");
+          header.className = "question-header";
+          header.textContent = `Questão ${index + 1} • ${q.desafio}`;
+          article.appendChild(header);
+
+          if (q.context) {
+            const context = document.createElement("p");
+            context.className = "question-context";
+            context.textContent = q.context;
+            article.appendChild(context);
+          }
+
+          const questionText = document.createElement("p");
+          questionText.className = "question-text";
+          questionText.textContent = q.question;
+          article.appendChild(questionText);
+
+          const ul = document.createElement("ul");
+          ul.className = "options";
+
+          q.options.forEach((opt, optIndex) => {
+            const li = document.createElement("li");
+            li.className = "option";
+
+            if (corrected) {
+              li.classList.add("disabled");
+              if (optIndex === q.correct) {
+                li.classList.add("correct");
+              }
+              if (userAnswers[q.id] === optIndex && optIndex !== q.correct) {
+                li.classList.add("incorrect");
+              }
+            }
+
+            const input = document.createElement("input");
+            input.type = "radio";
+            input.name = `q${q.id}`;
+            input.value = optIndex;
+            input.checked = userAnswers[q.id] === optIndex;
+            input.disabled = corrected;
+
+            const label = document.createElement("label");
+            label.textContent = `${String.fromCharCode(65 + optIndex)}) ${opt}`;
+            label.style.cursor = corrected ? "default" : "pointer";
+
+            li.appendChild(input);
+            li.appendChild(label);
+
+            if (!corrected) {
+              li.addEventListener("click", () => {
+                input.checked = true;
+                userAnswers[q.id] = optIndex;
+                updateAnsweredCount();
+              });
+              input.addEventListener("change", () => {
+                userAnswers[q.id] = optIndex;
+                updateAnsweredCount();
+              });
+            }
+
+            ul.appendChild(li);
+          });
+
+          article.appendChild(ul);
+          elements.container.appendChild(article);
+        });
+      }
+
+      function updateAnsweredCount() {
+        elements.answered.textContent = Object.keys(userAnswers).length;
+      }
+
+      function correctExam() {
+        if (corrected) return;
+
+        let hits = 0;
+        let mistakes = 0;
+
+        QUESTIONS.forEach((q) => {
+          const userAnswer = userAnswers[q.id];
+          if (userAnswer !== undefined) {
+            if (userAnswer === q.correct) {
+              hits++;
+            } else {
+              mistakes++;
+            }
+          }
+        });
+
+        const score = (hits / QUESTIONS.length) * 10;
+        const scoreRounded = Math.round(score * 10) / 10;
+
+        elements.scoreValue.textContent = scoreRounded
+          .toFixed(1)
+          .replace(".", ",");
+        elements.hits.textContent = hits;
+        elements.mistakes.textContent = mistakes;
+
+        let feedback = "";
+        if (score >= 9) {
+          feedback = "🎉 Excelente! Você domina o conteúdo!";
+        } else if (score >= 7) {
+          feedback = "👏 Bom trabalho! Continue estudando!";
+        } else if (score >= 5) {
+          feedback = "📚 Razoável. Revise os tópicos com mais atenção.";
+        } else {
+          feedback = "📖 Precisa revisar. Estude mais e tente novamente!";
+        }
+
+        elements.feedback.textContent = feedback;
+        corrected = true;
+        renderQuestions();
+      }
+
+      elements.btnCorrect.addEventListener("click", correctExam);
+      renderQuestions();
+    </script>
+  </body>
+</html>
