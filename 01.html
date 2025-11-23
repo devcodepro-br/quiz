@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simulador de Provas</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 800px;
+        width: 100%;
+        padding: 30px;
+      }
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 1.8rem;
+      }
+      .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 25px;
+        font-size: 0.95rem;
+      }
+      .score-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        text-align: center;
+      }
+      .score-value {
+        font-size: 3rem;
+        font-weight: bold;
+        margin: 10px 0;
+      }
+      .score-details {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 10px;
+        font-size: 0.9rem;
+      }
+      .question {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #667eea;
+      }
+      .question-header {
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+      }
+      .question-context {
+        color: #555;
+        margin-bottom: 12px;
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+      .question-text {
+        color: #333;
+        margin-bottom: 15px;
+        font-weight: 500;
+        line-height: 1.5;
+      }
+      .options {
+        list-style: none;
+      }
+      .option {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .option:hover {
+        border-color: #667eea;
+        background: #f0f4ff;
+      }
+      .option input[type="radio"] {
+        cursor: pointer;
+      }
+      .option.correct {
+        background: #d4edda;
+        border-color: #28a745;
+      }
+      .option.incorrect {
+        background: #f8d7da;
+        border-color: #dc3545;
+      }
+      .option.disabled {
+        cursor: default;
+      }
+      .option.disabled:hover {
+        background: white;
+        border-color: #e0e0e0;
+      }
+      .option.correct:hover,
+      .option.incorrect:hover {
+        background: #d4edda;
+        border-color: #28a745;
+      }
+      .option.incorrect:hover {
+        background: #f8d7da;
+        border-color: #dc3545;
+      }
+      .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+        width: 100%;
+        margin-top: 10px;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+      .hidden {
+        display: none;
+      }
+      .feedback {
+        text-align: center;
+        margin-top: 15px;
+        font-size: 0.95rem;
+        color: #666;
+      }
+      @media (max-width: 600px) {
+        .container {
+          padding: 20px;
+        }
+        h1 {
+          font-size: 1.5rem;
+        }
+        .score-value {
+          font-size: 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Simulador</h1>
+      <p class="subtitle">Praticando Fisiologia e Neurociência</p>
+      <div class="score-box">
+        <div>Sua nota</div>
+        <div class="score-value" id="scoreValue">–</div>
+        <div class="score-details">
+          <span>✓ Acertos: <strong id="hits">0</strong></span>
+          <span>✗ Erros: <strong id="mistakes">0</strong></span>
+          <span>Total: <strong id="answered">0</strong>/5</span>
+        </div>
+        <div class="feedback" id="feedback">
+          Responda as questões e clique em "Corrigir Prova"
+        </div>
+      </div>
+      <div id="questionsContainer"></div>
+      <button class="btn" id="btnCorrect">Corrigir Prova</button>
+    </div>
+    <script>
+      const QUESTIONS = [
+        {
+          id: 1,
+          desafio: "Desafio 1",
+          context:
+            "Você está avaliando um paciente que apresenta dificuldades motoras e reflexos alterados. Durante a avaliação, você observa que o comprimento dos músculos do paciente varia significativamente durante os testes de reflexo. Para determinar a causa dessas alterações, é crucial identificar os receptores musculares responsáveis por detectar essas mudanças no comprimento muscular.",
+          question:
+            "Como profissional de saúde, qual receptor especializado você investigaria para entender melhor a condição do paciente?",
+          options: [
+            "Fuso muscular.",
+            "Órgãos tendinosos de Golgi.",
+            "Corpúsculo de Meissner.",
+            "Corpúsculo de Pacini.",
+            "Placa motora terminal.",
+          ],
+          correct: 0,
+        },
+        {
+          id: 2,
+          desafio: "Desafio 2",
+          context:
+            "Imagine que você está preparando uma aula sobre os diferentes tipos de hormônios para estudantes de medicina. Os hormônios desempenham papéis essenciais na regulação das funções do corpo, e podem ser classificados de acordo com sua natureza química. Hormônios peptídicos são formados por sequências de aminoácidos e conservam propriedades das proteínas.",
+          question:
+            "Identifique a alternativa que corretamente classifica hormônios de origem proteica, formados a partir de sequências de aminoácidos.",
+          options: [
+            "Hormônios adrenérgicos.",
+            "Hormônios de aminoácidos.",
+            "Hormônios de peptídeos.",
+            "Hormônios esteroides.",
+            "Hormônios da tirosina.",
+          ],
+          correct: 2,
+        },
+        {
+          id: 3,
+          desafio: "Desafio 3",
+          context:
+            "Como profissional da saúde, entender a fisiologia é crucial para explicar aos pacientes como o corpo reage em diferentes situações. Com base no funcionamento do organismo, analise as alternativas abaixo:",
+          question:
+            "I. A fisiologia auxilia na compreensão do corpo humano quando um indivíduo faz uso de medicamentos.\n\nII. A fisiologia auxilia na compreensão do corpo humano quando um indivíduo se encontra doente.\n\nIII. A fisiologia auxilia na compreensão do corpo humano quando um indivíduo se exercita doente.\n\nIV. A fisiologia não auxilia na compreensão do corpo, quando um indivíduo está realizando atividades físicas, já que é a mesma do indivíduo saudável.\n\nAssinale a alternativa correta:",
+          options: [
+            "I, II e III apenas.",
+            "I e III apenas.",
+            "II e IV apenas.",
+            "Apenas I e II.",
+            "Todas estão corretas.",
+          ],
+          correct: 0,
+        },
+        {
+          id: 4,
+          desafio: "Desafio 3",
+          context:
+            "Imagine que você é um profissional de saúde especializado em reabilitação, tratando um paciente com dificuldades de coordenação motora e percepção do corpo no espaço. O paciente relata que frequentemente perde o equilíbrio e não consegue sentir a posição dos membros sem olhar para eles. Para abordar esses problemas, é crucial entender os sensores proprioceptivos responsáveis por essas funções. Um desses sensores é o órgão tendinoso de Golgi.",
+          question: "Qual é a função do órgão tendinoso de Golgi?",
+          options: [
+            "Um sensor de comprimento muscular.",
+            "Um sensor de tensão muscular.",
+            "Um tipo de axônio sensorial.",
+            "Uma conexão inibitória entre neurônios motores alfa.",
+            "Uma estrutura presente no fuso muscular.",
+          ],
+          correct: 1,
+        },
+        {
+          id: 5,
+          desafio: "Desafio 1",
+          context:
+            "Um endocrinologista explicando a um grupo de residentes médicos sobre os mecanismos de feedback hormonal. Os sistemas de retroalimentação ou feedbacks são cruciais no controle da liberação hormonal.",
+          question:
+            "Avalie as opções abaixo para identificar um exemplo de feedback positivo.",
+          options: [
+            "Redução da liberação de TSH pela hipófise anterior, no hipertireoidismo.",
+            "Liberação de ocitocina no trabalho de parto, motivada pela contração uterina.",
+            "Inibição da produção de FSH e LH, devido à utilização de pílulas anticoncepcionais de uso contínuo.",
+            "Liberação de insulina, para redução da glicemia após alimentação.",
+            "Redução da liberação de ACTH pela hipófise anterior, na presença de altos níveis de cortisol.",
+          ],
+          correct: 1,
+        },
+      ];
+
+      let userAnswers = {};
+      let corrected = false;
+
+      const elements = {
+        container: document.getElementById("questionsContainer"),
+        btnCorrect: document.getElementById("btnCorrect"),
+        scoreValue: document.getElementById("scoreValue"),
+        hits: document.getElementById("hits"),
+        mistakes: document.getElementById("mistakes"),
+        answered: document.getElementById("answered"),
+        feedback: document.getElementById("feedback"),
+      };
+
+      function renderQuestions() {
+        elements.container.innerHTML = "";
+        QUESTIONS.forEach((q, index) => {
+          const article = document.createElement("article");
+          article.className = "question";
+
+          const header = document.createElement("div");
+          header.className = "question-header";
+          header.textContent = `Questão ${index + 1} • ${q.desafio}`;
+          article.appendChild(header);
+
+          if (q.context) {
+            const context = document.createElement("p");
+            context.className = "question-context";
+            context.textContent = q.context;
+            article.appendChild(context);
+          }
+
+          const questionText = document.createElement("p");
+          questionText.className = "question-text";
+          questionText.textContent = q.question;
+          article.appendChild(questionText);
+
+          const ul = document.createElement("ul");
+          ul.className = "options";
+
+          q.options.forEach((opt, optIndex) => {
+            const li = document.createElement("li");
+            li.className = "option";
+
+            if (corrected) {
+              li.classList.add("disabled");
+              if (optIndex === q.correct) {
+                li.classList.add("correct");
+              }
+              if (userAnswers[q.id] === optIndex && optIndex !== q.correct) {
+                li.classList.add("incorrect");
+              }
+            }
+
+            const input = document.createElement("input");
+            input.type = "radio";
+            input.name = `q${q.id}`;
+            input.value = optIndex;
+            input.checked = userAnswers[q.id] === optIndex;
+            input.disabled = corrected;
+
+            const label = document.createElement("label");
+            label.textContent = `${String.fromCharCode(65 + optIndex)}) ${opt}`;
+            label.style.cursor = corrected ? "default" : "pointer";
+
+            li.appendChild(input);
+            li.appendChild(label);
+
+            if (!corrected) {
+              li.addEventListener("click", () => {
+                input.checked = true;
+                userAnswers[q.id] = optIndex;
+                updateAnsweredCount();
+              });
+              input.addEventListener("change", () => {
+                userAnswers[q.id] = optIndex;
+                updateAnsweredCount();
+              });
+            }
+
+            ul.appendChild(li);
+          });
+
+          article.appendChild(ul);
+          elements.container.appendChild(article);
+        });
+      }
+
+      function updateAnsweredCount() {
+        elements.answered.textContent = Object.keys(userAnswers).length;
+      }
+
+      function correctExam() {
+        if (corrected) return;
+
+        let hits = 0;
+        let mistakes = 0;
+
+        QUESTIONS.forEach((q) => {
+          const userAnswer = userAnswers[q.id];
+          if (userAnswer !== undefined) {
+            if (userAnswer === q.correct) {
+              hits++;
+            } else {
+              mistakes++;
+            }
+          }
+        });
+
+        const score = (hits / QUESTIONS.length) * 10;
+        const scoreRounded = Math.round(score * 10) / 10;
+
+        elements.scoreValue.textContent = scoreRounded
+          .toFixed(1)
+          .replace(".", ",");
+        elements.hits.textContent = hits;
+        elements.mistakes.textContent = mistakes;
+
+        let feedback = "";
+        if (score >= 9) {
+          feedback = "🎉 Excelente! Você domina o conteúdo!";
+        } else if (score >= 7) {
+          feedback = "👏 Bom trabalho! Continue estudando!";
+        } else if (score >= 5) {
+          feedback = "📚 Razoável. Revise os tópicos com mais atenção.";
+        } else {
+          feedback = "📖 Precisa revisar. Estude mais e tente novamente!";
+        }
+
+        elements.feedback.textContent = feedback;
+        corrected = true;
+        renderQuestions();
+      }
+
+      elements.btnCorrect.addEventListener("click", correctExam);
+      renderQuestions();
+    </script>
+  </body>
+</html>

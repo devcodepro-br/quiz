@@ -1,0 +1,15 @@
+a {
+  width: 150px;
+  padding: 4px;
+  background-color: red;
+  color: white;
+  text-decoration: none;
+  text-align: center;
+  border-radius: 5px;
+}
+
+.secao-provas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
